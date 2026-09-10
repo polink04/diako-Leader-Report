@@ -9,6 +9,7 @@ drop function if exists public.update_report(uuid, date, text, text, text, text,
 drop function if exists public.get_my_reports(uuid[]);
 drop function if exists public.admin_list_reports();
 drop function if exists public.admin_add_comment(uuid, text);
+drop function if exists public.admin_delete_report(uuid);
 drop function if exists public.is_report_admin();
 drop function if exists public.current_report_profile();
 drop function if exists public.list_my_reports();
@@ -247,6 +248,22 @@ begin
 end;
 $$;
 
+create or replace function public.admin_delete_report(p_report_id uuid)
+returns boolean
+language plpgsql
+security definer
+set search_path = public, auth
+as $$
+declare deleted_count integer;
+begin
+  if not public.is_report_admin() then raise exception '관리자 권한이 없습니다.'; end if;
+
+  delete from public.reports where id = p_report_id;
+  get diagnostics deleted_count = row_count;
+  return deleted_count = 1;
+end;
+$$;
+
 revoke all on function public.is_allowed_report_user() from public;
 revoke all on function public.is_report_admin() from public;
 revoke all on function public.current_report_profile() from public;
@@ -255,6 +272,7 @@ revoke all on function public.update_report(uuid, date, text, text, text, text, 
 revoke all on function public.list_my_reports() from public;
 revoke all on function public.admin_list_reports() from public;
 revoke all on function public.admin_add_comment(uuid, text) from public;
+revoke all on function public.admin_delete_report(uuid) from public;
 
 grant execute on function public.is_allowed_report_user() to authenticated;
 grant execute on function public.is_report_admin() to authenticated;
@@ -264,5 +282,6 @@ grant execute on function public.update_report(uuid, date, text, text, text, tex
 grant execute on function public.list_my_reports() to authenticated;
 grant execute on function public.admin_list_reports() to authenticated;
 grant execute on function public.admin_add_comment(uuid, text) to authenticated;
+grant execute on function public.admin_delete_report(uuid) to authenticated;
 
 -- 로그인 허용 목록은 Supabase SQL Editor에서 별도로 입력합니다.

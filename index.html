@@ -50,7 +50,7 @@
       </section>
       <div id="appContent" class="hidden">
       <section class="hero"><div><p class="hero-kicker">✦ 회의에서 실행으로</p><h1>정한 일을 남기고,<br><span>실행에서 배운 것을 공유합니다.</span></h1></div><div class="stats"><div class="stat"><small id="countLabel">내 보고서</small><strong id="reportCount">0</strong></div><div class="stat dark"><small>실행 완료</small><strong id="completeCount">0</strong></div></div></section>
-      <nav class="nav"><button class="nav-btn active" data-view="write"><span>✎</span>보고서 작성</button><button class="nav-btn" data-view="history"><span>▣</span><span id="historyLabel">지난 보고서</span></button></nav>
+      <nav class="nav"><button id="writeNavBtn" class="nav-btn active" data-view="write"><span>✎</span>보고서 작성</button><button id="historyNavBtn" class="nav-btn" data-view="history"><span>▣</span><span id="historyLabel">지난 보고서</span></button></nav>
       <div id="writeView">
         <form id="reportForm" class="layout">
           <div class="card">
@@ -98,7 +98,7 @@
       const profileResult=await db.rpc("current_report_profile");
       if(profileResult.error||!profileResult.data?.length){$("authView").classList.remove("hidden");$("appContent").classList.add("hidden");$("loginBtn").classList.add("hidden");$("logoutBtn").classList.remove("hidden");$("newBtn").classList.add("hidden");showAuthError("이 계정은 보고서 사용 권한이 없습니다. 대표에게 문의해 주세요.");return}
       state.profile=profileResult.data[0];state.isAdmin=state.profile.is_admin;
-      $("authView").classList.add("hidden");$("appContent").classList.remove("hidden");$("loginBtn").classList.add("hidden");$("logoutBtn").classList.remove("hidden");$("newBtn").classList.toggle("hidden",state.isAdmin);$("adminRole").textContent=state.profile.display_name+(state.isAdmin?" · 대표":" · 리더");$("adminRole").classList.remove("hidden");$("historyHelp").textContent=state.isAdmin?"전체 보고서를 확인하고 코멘트를 남길 수 있습니다.":"로그인한 모든 기기에서 내 보고서를 확인하고 수정할 수 있습니다.";$("countLabel").textContent=state.isAdmin?"전체 보고":"내 보고서";$("saveBtn").classList.toggle("hidden",state.isAdmin);await loadReports();if(state.isAdmin)showView("history");else newReport();
+      $("authView").classList.add("hidden");$("appContent").classList.remove("hidden");$("loginBtn").classList.add("hidden");$("logoutBtn").classList.remove("hidden");$("newBtn").classList.toggle("hidden",state.isAdmin);$("writeNavBtn").classList.toggle("hidden",state.isAdmin);$("historyLabel").textContent=state.isAdmin?"전체 보고서":"지난 보고서";$("historyTitle").textContent=state.isAdmin?"전체 리더 보고서":"지난 보고서";$("adminRole").textContent=state.profile.display_name+(state.isAdmin?" · 대표":" · 리더");$("adminRole").classList.remove("hidden");$("historyHelp").textContent=state.isAdmin?"리더들이 작성한 보고서를 확인하고 코멘트를 남길 수 있습니다.":"로그인한 모든 기기에서 내 보고서를 확인하고 수정할 수 있습니다.";$("countLabel").textContent=state.isAdmin?"전체 보고":"내 보고서";$("saveBtn").classList.toggle("hidden",state.isAdmin);await loadReports();if(state.isAdmin)showView("history");else newReport();
     }
     async function loadReports(){
       if(!state.session||!state.profile)return;

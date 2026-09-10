@@ -4,8 +4,8 @@ GitHub Pages에서 실행되는 그룹장 주간보고 웹입니다.
 
 ## 제공 기능
 
-- 링크 방문자의 보고서 작성 및 영구 저장
-- 작성자별 개인 수정 링크와 `지난 보고서`
+- 허용된 대표·리더의 이메일/비밀번호 로그인
+- 계정별 보고서 영구 저장과 PC·모바일 자동 동기화
 - 다른 작성자의 보고서 비공개
 - 대표 계정의 전체 보고서 조회 및 코멘트
 - 대표 코멘트 작성자 확인
@@ -28,20 +28,21 @@ const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
 
 > `service_role` 키는 절대 HTML에 넣지 마세요. 브라우저에는 anon/publishable key만 사용합니다.
 
-## 2. 대표 로그인 설정
+## 2. 로그인 계정 설정
 
-현재 대표 이메일은 `polink@oogs.io`로 설정되어 있습니다. 다른 이메일을 사용하려면 아래 두 곳을 함께 변경합니다.
+`supabase-schema.sql` 실행 후 `allowed_report_users` 테이블에 대표와 리더의 이메일을 등록합니다. 실제 비밀번호는 Supabase `Authentication → Users`에서 각 사용자를 생성할 때 설정합니다.
 
-- `index.html`의 `ADMIN_EMAIL`
-- `supabase-schema.sql`의 `polink@oogs.io`
+- 대표 계정은 `is_admin = true`
+- 리더 계정은 `is_admin = false`
+- 공개 GitHub 저장소에는 실제 이메일이나 비밀번호를 기록하지 않습니다.
 
 Supabase의 `Authentication → URL Configuration`에서 다음 주소를 추가합니다.
 
 ```text
-https://polink04.github.io/diako-leader-report/
+https://polink04.github.io/diako-Leader-Report/
 ```
 
-대표 로그인은 이메일로 발송되는 매직링크 방식입니다.
+로그인은 Supabase 이메일/비밀번호 인증을 사용합니다.
 
 ## 3. GitHub Pages에 올리기
 
@@ -53,15 +54,15 @@ https://polink04.github.io/diako-leader-report/
 6. 배포 후 아래 주소로 접속합니다.
 
 ```text
-https://polink04.github.io/diako-leader-report/
+https://polink04.github.io/diako-Leader-Report/
 ```
 
 ## 작동 방식
 
-그룹장이 처음 보고서를 저장하면 추측하기 어려운 개인 수정 토큰을 발급합니다. 토큰은 해당 브라우저에 저장되고 개인 수정 링크에도 포함됩니다. 대표님은 `대표 로그인` 후 전체 보고서를 볼 수 있습니다. 데이터베이스 테이블은 직접 공개하지 않고 제한된 함수만 호출하도록 구성했습니다.
+로그인한 그룹장의 Supabase 계정 ID에 보고서가 귀속됩니다. 따라서 같은 계정으로 로그인하면 컴퓨터와 모바일에서 동일한 지난 보고서를 확인하고 수정할 수 있습니다. 대표 계정은 모든 보고서를 열람하고 코멘트를 남길 수 있습니다. 데이터베이스 테이블은 직접 공개하지 않고 권한을 확인하는 제한된 함수만 호출하도록 구성했습니다.
 
 ## 주의사항
 
-- GitHub Pages 주소 자체는 공개 URL입니다. 주소를 전달받은 사람은 새 보고서를 작성할 수 있습니다.
-- 작성자는 개인 수정 링크를 북마크해야 다른 기기에서도 기존 보고서를 수정할 수 있습니다.
+- GitHub Pages 주소는 공개 URL이지만, 허용 목록과 Supabase 사용자 계정에 모두 등록된 사람만 보고서를 사용할 수 있습니다.
+- 비밀번호는 GitHub 파일이나 SQL 파일에 기록하지 않습니다.
 - 기존 ChatGPT Sites 버전에 저장된 보고서는 Supabase로 자동 이전되지 않습니다.

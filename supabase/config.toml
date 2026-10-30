@@ -1,0 +1,4 @@
+project_id = "vhspohhfauapjfqzsjwl"
+
+[functions.leader-report-email]
+verify_jwt = false

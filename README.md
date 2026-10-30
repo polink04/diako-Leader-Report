@@ -21,6 +21,7 @@ GitHub Pages에서 실행되는 그룹장 주간보고 웹입니다.
 1. [Supabase](https://supabase.com/)에서 새 프로젝트를 만듭니다.
 2. `SQL Editor`에서 `supabase-schema.sql` 전체를 실행합니다.
 3. 이어서 `supabase-meeting-upgrade.sql` 전체를 실행합니다.
+   - 기존 주간회의 기능을 이미 설치했다면 `supabase-meeting-file-types-upgrade.sql`도 한 번 실행해 사전 참고자료와 회의록을 구분합니다.
 4. `Project Settings → API`에서 다음 값을 확인합니다.
    - Project URL
    - anon 또는 publishable key

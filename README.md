@@ -8,6 +8,8 @@ GitHub Pages에서 실행되는 그룹장 주간보고 웹입니다.
 - 계정별 보고서 영구 저장과 PC·모바일 자동 동기화
 - 다른 작성자의 보고서 비공개
 - 대표 계정의 전체 보고서 조회 및 코멘트
+- 대표 계정의 주간회의 날짜·시간·장소·안내 메모 등록
+- PDF·이미지 회의록 비공개 첨부 및 모바일 화면 내 미리보기
 - 리더의 지난 보고서 수정·보완 및 최근 수정 시각 기록
 - 대표 계정의 보고서 삭제(작성 리더의 목록에서도 즉시 삭제)
 - 대표 코멘트 작성자 확인
@@ -18,10 +20,11 @@ GitHub Pages에서 실행되는 그룹장 주간보고 웹입니다.
 
 1. [Supabase](https://supabase.com/)에서 새 프로젝트를 만듭니다.
 2. `SQL Editor`에서 `supabase-schema.sql` 전체를 실행합니다.
-3. `Project Settings → API`에서 다음 값을 확인합니다.
+3. 이어서 `supabase-meeting-upgrade.sql` 전체를 실행합니다.
+4. `Project Settings → API`에서 다음 값을 확인합니다.
    - Project URL
    - anon 또는 publishable key
-4. `index.html` 상단의 설정값을 수정합니다.
+5. `index.html` 상단의 설정값을 수정합니다.
 
 ```js
 const SUPABASE_URL = "https://YOUR_PROJECT.supabase.co";
@@ -62,6 +65,8 @@ https://polink04.github.io/diako-Leader-Report/
 ## 작동 방식
 
 로그인한 그룹장의 Supabase 계정 ID에 보고서가 귀속됩니다. 따라서 같은 계정으로 로그인하면 컴퓨터와 모바일에서 동일한 지난 보고서를 확인하고 수정할 수 있습니다. 대표 계정은 모든 보고서를 열람하고 코멘트를 남길 수 있습니다. 데이터베이스 테이블은 직접 공개하지 않고 권한을 확인하는 제한된 함수만 호출하도록 구성했습니다.
+
+주간회의 일정은 대표 계정만 등록·수정할 수 있고 그룹장 계정은 조회만 할 수 있습니다. 회의록 파일은 Supabase의 비공개 Storage 버킷에 저장되며 허용된 로그인 계정에만 1시간짜리 임시 열람 주소가 발급됩니다. 기존 프로젝트를 업그레이드할 때는 기존 보고서를 건드리지 않는 `supabase-meeting-upgrade.sql`만 실행하면 됩니다.
 
 ## 주의사항
 

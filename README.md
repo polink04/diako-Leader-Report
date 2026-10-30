@@ -88,4 +88,4 @@ https://polink04.github.io/diako-Leader-Report/
 `REMINDER_FROM` 예시: `공공감성 <notice@oogs.io>`
 `APP_URL`: `https://polink04.github.io/diako-Leader-Report/`
 
-비밀번호는 홈페이지 상단의 `비밀번호 변경`에서 본인이 바꿀 수 있습니다. 기존 그룹장 계정은 위 SQL 실행 후 다음 로그인 때 변경 창이 자동으로 열립니다.
+비밀번호는 홈페이지 상단의 `비밀번호 변경`에서 본인이 바꿀 수 있습니다. 기존 대표·그룹장 계정은 위 SQL 실행 후 다음 로그인 때 변경 창이 자동으로 열립니다.

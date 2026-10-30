@@ -1,5 +1,5 @@
 -- Diako Leader Report · 사용자 본인 비밀번호 변경 기능
--- 기존 그룹장 계정은 다음 로그인 때 새 비밀번호 설정을 안내합니다.
+-- 기존 대표·그룹장 계정은 다음 로그인 때 새 비밀번호 설정을 안내합니다.
 
 alter table public.allowed_report_users
   add column if not exists must_change_password boolean not null default false;
@@ -9,7 +9,7 @@ alter table public.allowed_report_users
 
 update public.allowed_report_users
 set must_change_password = true
-where is_admin = false and password_changed_at is null;
+where password_changed_at is null;
 
 create or replace function public.current_password_policy()
 returns table(must_change_password boolean, password_changed_at timestamptz)

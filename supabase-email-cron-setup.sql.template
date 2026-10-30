@@ -5,17 +5,45 @@ create extension if not exists pg_cron;
 create extension if not exists pg_net;
 create extension if not exists supabase_vault;
 
-select vault.create_secret(
-  'https://vhspohhfauapjfqzsjwl.supabase.co',
-  'leader_report_project_url',
-  '공공감성 주간회의 알림 프로젝트 주소'
-);
+do $$
+declare existing_id uuid;
+begin
+  select id into existing_id from vault.secrets where name = 'leader_report_project_url';
+  if existing_id is null then
+    perform vault.create_secret(
+      'https://vhspohhfauapjfqzsjwl.supabase.co',
+      'leader_report_project_url',
+      '공공감성 주간회의 알림 프로젝트 주소'
+    );
+  else
+    perform vault.update_secret(
+      existing_id,
+      'https://vhspohhfauapjfqzsjwl.supabase.co',
+      'leader_report_project_url',
+      '공공감성 주간회의 알림 프로젝트 주소'
+    );
+  end if;
+end $$;
 
-select vault.create_secret(
-  'YOUR_CRON_SECRET',
-  'leader_report_cron_secret',
-  '공공감성 주간회의 전날 알림 호출 비밀값'
-);
+do $$
+declare existing_id uuid;
+begin
+  select id into existing_id from vault.secrets where name = 'leader_report_cron_secret';
+  if existing_id is null then
+    perform vault.create_secret(
+      'YOUR_CRON_SECRET',
+      'leader_report_cron_secret',
+      '공공감성 주간회의 전날 알림 호출 비밀값'
+    );
+  else
+    perform vault.update_secret(
+      existing_id,
+      'YOUR_CRON_SECRET',
+      'leader_report_cron_secret',
+      '공공감성 주간회의 전날 알림 호출 비밀값'
+    );
+  end if;
+end $$;
 
 select cron.unschedule(jobid)
 from cron.job

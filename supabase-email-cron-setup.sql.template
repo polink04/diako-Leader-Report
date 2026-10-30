@@ -1,0 +1,38 @@
+-- 실행 전 YOUR_CRON_SECRET을 충분히 긴 임의 문자열로 바꾸세요.
+-- 같은 값을 Supabase Edge Function Secret의 REMINDER_CRON_SECRET에도 저장해야 합니다.
+
+create extension if not exists pg_cron;
+create extension if not exists pg_net;
+create extension if not exists supabase_vault;
+
+select vault.create_secret(
+  'https://vhspohhfauapjfqzsjwl.supabase.co',
+  'leader_report_project_url',
+  '공공감성 주간회의 알림 프로젝트 주소'
+);
+
+select vault.create_secret(
+  'YOUR_CRON_SECRET',
+  'leader_report_cron_secret',
+  '공공감성 주간회의 전날 알림 호출 비밀값'
+);
+
+select cron.unschedule(jobid)
+from cron.job
+where jobname = 'leader-report-meeting-reminder-9am';
+
+select cron.schedule(
+  'leader-report-meeting-reminder-9am',
+  '0 0 * * *', -- UTC 00:00 = 한국시간 오전 9:00
+  $$
+  select net.http_post(
+    url := (select decrypted_secret from vault.decrypted_secrets where name = 'leader_report_project_url' order by created_at desc limit 1) || '/functions/v1/leader-report-email',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'x-reminder-secret', (select decrypted_secret from vault.decrypted_secrets where name = 'leader_report_cron_secret' order by created_at desc limit 1)
+    ),
+    body := '{"type":"meeting_reminder"}'::jsonb,
+    timeout_milliseconds := 10000
+  );
+  $$
+);

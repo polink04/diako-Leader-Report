@@ -22,8 +22,11 @@ create table if not exists public.weekly_meeting_files (
   file_name text not null check (char_length(file_name) between 1 and 255),
   mime_type text not null check (mime_type in ('application/pdf', 'image/jpeg', 'image/png', 'image/webp')),
   file_size bigint not null check (file_size > 0 and file_size <= 15728640),
+  file_kind text not null default 'minutes' check (file_kind in ('reference', 'minutes')),
   created_at timestamptz not null default now()
 );
+
+alter table public.weekly_meeting_files add column if not exists file_kind text not null default 'minutes';
 
 create index if not exists idx_weekly_meetings_date on public.weekly_meetings(meeting_date desc, meeting_time desc);
 create index if not exists idx_weekly_meeting_files_meeting on public.weekly_meeting_files(meeting_id);
@@ -50,7 +53,7 @@ begin
     m.created_at, m.updated_at,
     coalesce((select jsonb_agg(jsonb_build_object(
       'id', f.id, 'storage_path', f.storage_path, 'file_name', f.file_name,
-      'mime_type', f.mime_type, 'file_size', f.file_size, 'created_at', f.created_at
+      'mime_type', f.mime_type, 'file_size', f.file_size, 'file_kind', f.file_kind, 'created_at', f.created_at
     ) order by f.created_at desc) from public.weekly_meeting_files f where f.meeting_id = m.id), '[]'::jsonb)
   from public.weekly_meetings m
   order by m.meeting_date desc, m.meeting_time desc, m.created_at desc;
@@ -100,7 +103,8 @@ create or replace function public.admin_add_weekly_meeting_file(
   p_storage_path text,
   p_file_name text,
   p_mime_type text,
-  p_file_size bigint
+  p_file_size bigint,
+  p_file_kind text default 'minutes'
 )
 returns uuid
 language plpgsql
@@ -113,13 +117,14 @@ begin
   if p_mime_type not in ('application/pdf', 'image/jpeg', 'image/png', 'image/webp') then
     raise exception 'PDF, JPG, PNG, WEBP 파일만 첨부할 수 있습니다.';
   end if;
+  if p_file_kind not in ('reference', 'minutes') then raise exception '올바르지 않은 첨부 구분입니다.'; end if;
   if p_file_size <= 0 or p_file_size > 15728640 then raise exception '파일은 15MB 이하여야 합니다.'; end if;
   if not exists (select 1 from public.weekly_meetings where id = p_meeting_id) then
     raise exception '회의 일정을 먼저 저장해 주세요.';
   end if;
 
-  insert into public.weekly_meeting_files(meeting_id, storage_path, file_name, mime_type, file_size)
-  values (p_meeting_id, p_storage_path, left(trim(p_file_name), 255), p_mime_type, p_file_size)
+  insert into public.weekly_meeting_files(meeting_id, storage_path, file_name, mime_type, file_size, file_kind)
+  values (p_meeting_id, p_storage_path, left(trim(p_file_name), 255), p_mime_type, p_file_size, p_file_kind)
   returning id into saved_id;
   return saved_id;
 end;
@@ -139,11 +144,11 @@ $$;
 
 revoke all on function public.list_weekly_meetings() from public;
 revoke all on function public.admin_save_weekly_meeting(uuid, date, time, text, text) from public;
-revoke all on function public.admin_add_weekly_meeting_file(uuid, text, text, text, bigint) from public;
+revoke all on function public.admin_add_weekly_meeting_file(uuid, text, text, text, bigint, text) from public;
 revoke all on function public.admin_delete_weekly_meeting_file(uuid) from public;
 grant execute on function public.list_weekly_meetings() to authenticated;
 grant execute on function public.admin_save_weekly_meeting(uuid, date, time, text, text) to authenticated;
-grant execute on function public.admin_add_weekly_meeting_file(uuid, text, text, text, bigint) to authenticated;
+grant execute on function public.admin_add_weekly_meeting_file(uuid, text, text, text, bigint, text) to authenticated;
 grant execute on function public.admin_delete_weekly_meeting_file(uuid) to authenticated;
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)

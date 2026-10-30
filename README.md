@@ -10,6 +10,9 @@ GitHub Pages에서 실행되는 그룹장 주간보고 웹입니다.
 - 대표 계정의 전체 보고서 조회 및 코멘트
 - 대표 계정의 주간회의 날짜·시간·장소·안내 메모 등록
 - PDF·이미지 회의록 비공개 첨부 및 모바일 화면 내 미리보기
+- 대표 코멘트·회의 일정 등록/변경 이메일 알림
+- 회의 전날 오전 9시 대표·그룹장 전체 이메일 재알림
+- 그룹장 본인의 안전한 비밀번호 변경
 - 리더의 지난 보고서 수정·보완 및 최근 수정 시각 기록
 - 대표 계정의 보고서 삭제(작성 리더의 목록에서도 즉시 삭제)
 - 대표 코멘트 작성자 확인
@@ -74,3 +77,15 @@ https://polink04.github.io/diako-Leader-Report/
 - GitHub Pages 주소는 공개 URL이지만, 허용 목록과 Supabase 사용자 계정에 모두 등록된 사람만 보고서를 사용할 수 있습니다.
 - 비밀번호는 GitHub 파일이나 SQL 파일에 기록하지 않습니다.
 - 기존 ChatGPT Sites 버전에 저장된 보고서는 Supabase로 자동 이전되지 않습니다.
+
+## 이메일 알림과 비밀번호 변경 추가 설정
+
+1. SQL Editor에서 `supabase-email-notifications-upgrade.sql`과 `supabase-password-self-service-upgrade.sql`을 각각 실행합니다.
+2. Supabase CLI에서 `supabase functions deploy leader-report-email --no-verify-jwt`로 함수를 배포합니다.
+3. Edge Function Secrets에 `RESEND_API_KEY`, `REMINDER_FROM`, `REMINDER_CRON_SECRET`, `APP_URL`을 등록합니다. `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`는 Supabase가 기본 제공합니다.
+4. `supabase-email-cron-setup.sql.template`의 `YOUR_CRON_SECRET`을 3번과 같은 값으로 바꾼 뒤 SQL Editor에서 실행합니다.
+
+`REMINDER_FROM` 예시: `공공감성 <notice@oogs.io>`
+`APP_URL`: `https://polink04.github.io/diako-Leader-Report/`
+
+비밀번호는 홈페이지 상단의 `비밀번호 변경`에서 본인이 바꿀 수 있습니다. 기존 그룹장 계정은 위 SQL 실행 후 다음 로그인 때 변경 창이 자동으로 열립니다.

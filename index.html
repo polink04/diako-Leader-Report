@@ -56,11 +56,12 @@
       <section id="meetingCard" class="meeting-card">
         <div class="meeting-summary">
           <div>
-            <div class="meeting-title"><span class="meeting-badge">NEXT MEETING</span><h2>주간회의 일정</h2></div>
+            <div class="meeting-title"><span id="meetingBadge" class="meeting-badge">NEXT MEETING</span><h2>주간회의 일정</h2></div>
             <div id="meetingInfo"><p class="meeting-empty">등록된 회의 일정이 없습니다.</p></div>
           </div>
           <div class="meeting-summary-actions">
             <button id="meetingEditBtn" type="button" class="btn hidden">일정 등록</button>
+            <button id="meetingNextBtn" type="button" class="btn hidden">✓ 회의 완료 · 다음 일정</button>
             <label id="meetingReferenceUpload" class="btn hidden" style="cursor:pointer">＋ 사전자료 추가<input id="meetingReferenceFileInput" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" multiple hidden></label>
             <label id="meetingMinutesUpload" class="btn btn-dark hidden" style="cursor:pointer">▤ 회의록 첨부<input id="meetingMinutesFileInput" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" multiple hidden></label>
           </div>
@@ -153,18 +154,22 @@
     function todayValue(){return new Date().toLocaleDateString("en-CA")}
     function formatTime(value){if(!value)return "";const [hour,minute]=String(value).split(":");const h=Number(hour);return `${h<12?"오전":"오후"} ${h%12||12}:${minute}`}
     function fileSize(value){const size=Number(value)||0;return size>=1048576?`${(size/1048576).toFixed(1)}MB`:`${Math.max(1,Math.round(size/1024))}KB`}
-    function chooseActiveMeeting(){const upcoming=state.meetings.filter(m=>m.meeting_date>=todayValue()).sort((a,b)=>(a.meeting_date+a.meeting_time).localeCompare(b.meeting_date+b.meeting_time));return upcoming[0]||state.meetings[0]||null}
+    function meetingDateTime(meeting){return new Date(`${meeting.meeting_date}T${String(meeting.meeting_time||"00:00").slice(0,8)}`)}
+    function meetingHasStarted(meeting){return meetingDateTime(meeting).getTime()<=Date.now()}
+    function addDays(dateValue,days){const date=new Date(`${dateValue}T12:00:00`);date.setDate(date.getDate()+days);return date.toLocaleDateString("en-CA")}
+    function nextMeetingDate(){const meeting=state.activeMeeting;let next=addDays(meeting?.meeting_date||todayValue(),7);while(next<=todayValue())next=addDays(next,7);return next}
+    function chooseActiveMeeting(){const upcoming=state.meetings.filter(m=>!meetingHasStarted(m)).sort((a,b)=>meetingDateTime(a)-meetingDateTime(b));const past=state.meetings.filter(meetingHasStarted).sort((a,b)=>meetingDateTime(b)-meetingDateTime(a));return upcoming[0]||past[0]||null}
     async function loadMeetings(){
       const result=await db.rpc("list_weekly_meetings");
       if(result.error){state.meetingReady=false;state.meetings=[];state.activeMeeting=null;$("meetingCard").classList.toggle("hidden",!state.isAdmin);$("meetingFeatureWait").classList.toggle("hidden",!state.isAdmin);$("meetingEditBtn").classList.add("hidden");return}
       state.meetingReady=true;state.meetings=result.data||[];state.activeMeeting=chooseActiveMeeting();$("meetingCard").classList.remove("hidden");$("meetingFeatureWait").classList.add("hidden");renderMeeting();
     }
     function renderMeeting(){
-      const meeting=state.activeMeeting;const info=$("meetingInfo");const files=$("meetingFiles");const edit=$("meetingEditBtn");const referenceUpload=$("meetingReferenceUpload");const minutesUpload=$("meetingMinutesUpload");
-      edit.classList.toggle("hidden",!state.isAdmin);edit.textContent=meeting?(meeting.meeting_date<todayValue()?"다음 회의 등록":"일정 수정"):"일정 등록";
-      edit.dataset.mode=meeting&&meeting.meeting_date>=todayValue()?"edit":"new";
-      referenceUpload.classList.toggle("hidden",!state.isAdmin||!meeting);minutesUpload.classList.toggle("hidden",!state.isAdmin||!meeting);
-      if(!meeting){info.innerHTML='<p class="meeting-empty">등록된 회의 일정이 없습니다. 일정 등록 화면에서 사전 참고자료도 함께 첨부할 수 있습니다.</p>';files.innerHTML="";files.classList.add("hidden");return}
+      const meeting=state.activeMeeting;const info=$("meetingInfo");const files=$("meetingFiles");const edit=$("meetingEditBtn");const next=$("meetingNextBtn");const badge=$("meetingBadge");const referenceUpload=$("meetingReferenceUpload");const minutesUpload=$("meetingMinutesUpload");const started=meeting?meetingHasStarted(meeting):false;
+      edit.classList.toggle("hidden",!state.isAdmin);edit.textContent=meeting?"일정 수정":"일정 등록";edit.dataset.mode=meeting?"edit":"new";
+      next.classList.toggle("hidden",!state.isAdmin||!meeting||!started);referenceUpload.classList.toggle("hidden",!state.isAdmin||!meeting||started);minutesUpload.classList.toggle("hidden",!state.isAdmin||!meeting);
+      badge.textContent=started?"MEETING COMPLETE":"NEXT MEETING";badge.style.background=started?"#eef0f2":"";badge.style.color=started?"#565b63":"";
+      if(!meeting){badge.textContent="NEXT MEETING";badge.style.background="";badge.style.color="";info.innerHTML='<p class="meeting-empty">등록된 회의 일정이 없습니다. 일정 등록 화면에서 사전 참고자료도 함께 첨부할 수 있습니다.</p>';files.innerHTML="";files.classList.add("hidden");return}
       info.innerHTML=`<div class="meeting-info"><span>📅 ${safe(formatDate(meeting.meeting_date))}</span><span>🕘 ${safe(formatTime(meeting.meeting_time))}</span><span>📍 ${safe(meeting.place)}</span></div>${meeting.memo?`<p class="meeting-memo">${safe(meeting.memo)}</p>`:""}`;
       const fileMarkup=file=>`<div class="file-chip"><button type="button" class="file-open" data-file-id="${file.id}" style="border:0;background:transparent;padding:0;font:inherit;cursor:pointer">${file.mime_type==="application/pdf"?"▤":"▧"} ${safe(file.file_name)} <small>${safe(fileSize(file.file_size))}</small></button>${state.isAdmin?`<button type="button" class="file-delete" data-file-id="${file.id}" aria-label="첨부 삭제">×</button>`:""}</div>`;
       const referenceFiles=(meeting.files||[]).filter(file=>file.file_kind==="reference").map(fileMarkup).join("");const minutesFiles=(meeting.files||[]).filter(file=>file.file_kind!=="reference").map(fileMarkup).join("");
@@ -172,7 +177,7 @@
       files.classList.remove("hidden");files.querySelectorAll(".file-open").forEach(button=>button.addEventListener("click",()=>openMeetingFile(button.dataset.fileId)));files.querySelectorAll(".file-delete").forEach(button=>button.addEventListener("click",()=>deleteMeetingFile(button.dataset.fileId)));
     }
     function initTimeOptions(){$("scheduleHour").innerHTML=Array.from({length:24},(_,hour)=>{const value=String(hour).padStart(2,"0");const label=`${hour<12?"오전":"오후"} ${hour%12||12}시`;return `<option value="${value}">${label}</option>`}).join("");$("scheduleMinute").innerHTML=Array.from({length:60},(_,minute)=>{const value=String(minute).padStart(2,"0");return `<option value="${value}">${value}분</option>`}).join("")}
-    function openMeetingEditor(mode){const meeting=mode==="edit"?state.activeMeeting:null;const [hour="09",minute="00"]=(meeting?.meeting_time||"09:00").slice(0,5).split(":");$("scheduleDate").value=meeting?.meeting_date||todayValue();$("scheduleHour").value=hour;$("scheduleMinute").value=minute;$("schedulePlace").value=meeting?.place||"";$("scheduleMemo").value=meeting?.memo||"";$("scheduleFiles").value="";$("scheduleFileNames").textContent="";$("scheduleFileNames").classList.add("hidden");$("meetingForm").dataset.meetingId=meeting?.id||"";$("meetingForm").classList.remove("hidden");$("scheduleDate").focus()}
+    function openMeetingEditor(mode){const meeting=mode==="edit"?state.activeMeeting:null;const previous=state.activeMeeting;const [hour="09",minute="00"]=(meeting?.meeting_time||previous?.meeting_time||"09:00").slice(0,5).split(":");$("scheduleDate").value=meeting?.meeting_date||(mode==="next"?nextMeetingDate():todayValue());$("scheduleHour").value=hour;$("scheduleMinute").value=minute;$("schedulePlace").value=meeting?.place||previous?.place||"";$("scheduleMemo").value=meeting?.memo||"";$("scheduleFiles").value="";$("scheduleFileNames").textContent="";$("scheduleFileNames").classList.add("hidden");$("meetingForm").dataset.meetingId=meeting?.id||"";$("meetingForm").classList.remove("hidden");$("scheduleDate").focus()}
     function meetingFileType(file){const extension=file.name.toLowerCase().split(".").pop();const byExtension={pdf:"application/pdf",jpg:"image/jpeg",jpeg:"image/jpeg",png:"image/png",webp:"image/webp"};const allowed=["application/pdf","image/jpeg","image/png","image/webp"];return allowed.includes(file.type)?file.type:(byExtension[extension]||"")}
     async function uploadMeetingFiles(fileList,fileKind="minutes",showResult=true){
       const files=Array.from(fileList||[]);const result={uploaded:0,errors:[]};if(!state.isAdmin||!state.activeMeeting||!files.length)return result;
@@ -216,6 +221,7 @@
     $("commentBtn").addEventListener("click",async()=>{const body=$("commentBody").value.trim();if(!body||!state.editing)return;const btn=$("commentBtn");const reportId=state.editing.id;setBusy(btn,true,"저장 중…");const result=await db.rpc("admin_add_comment",{p_report_id:reportId,p_body:body});if(result.error)toast(result.error.message);else{$("commentBody").value="";const commentId=result.data?.[0]?.id;await loadReports();const mailed=commentId?await sendEmailNotice("comment_created",{report_id:reportId,comment_id:commentId}):false;toast(mailed?"코멘트를 저장하고 작성자에게 메일을 보냈습니다.":"코멘트는 저장됐습니다. 메일 알림 설정을 확인해 주세요.")}setBusy(btn,false,"코멘트 저장")});
     $("deleteBtn").addEventListener("click",async()=>{if(!state.isAdmin||!state.editing)return;const report=state.editing;if(!window.confirm(`${report.leader_name}님의 ${formatDate(report.meeting_date)} 보고서를 삭제할까요?\n삭제하면 해당 리더의 지난 보고서에서도 사라지며 복구할 수 없습니다.`))return;const btn=$("deleteBtn");setBusy(btn,true,"보고서 삭제","삭제 중…");const result=await db.rpc("admin_delete_report",{p_report_id:report.id});if(result.error){toast(result.error.message)}else if(!result.data){toast("삭제할 보고서를 찾을 수 없습니다.")}else{state.editing=null;await loadReports();$("deleteBtn").classList.add("hidden");$("printBtn").classList.add("hidden");showView("history");toast("보고서를 삭제했습니다.")}setBusy(btn,false,"보고서 삭제")});
     $("meetingEditBtn").addEventListener("click",()=>openMeetingEditor($("meetingEditBtn").dataset.mode||"new"));
+    $("meetingNextBtn").addEventListener("click",()=>openMeetingEditor("next"));
     $("meetingCancelBtn").addEventListener("click",()=>$("meetingForm").classList.add("hidden"));
     $("scheduleFiles").addEventListener("change",()=>{const names=Array.from($("scheduleFiles").files||[]).map(file=>file.name);$("scheduleFileNames").textContent=names.length?`선택됨 · ${names.join(", ")}`:"";$("scheduleFileNames").classList.toggle("hidden",!names.length)});
     $("meetingReferenceFileInput").addEventListener("change",async()=>{await uploadMeetingFiles($("meetingReferenceFileInput").files,"reference");$("meetingReferenceFileInput").value=""});
@@ -232,3 +238,4 @@
   </script>
 </body>
 </html>
+

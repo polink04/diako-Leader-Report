@@ -60,7 +60,7 @@ select cron.schedule(
       'x-reminder-secret', (select decrypted_secret from vault.decrypted_secrets where name = 'leader_report_cron_secret' order by created_at desc limit 1)
     ),
     body := '{"type":"meeting_reminder"}'::jsonb,
-    timeout_milliseconds := 10000
+    timeout_milliseconds := 60000
   );
   $$
 );
